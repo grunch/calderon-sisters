@@ -92,6 +92,13 @@ tele.render();
 tele.destroy();                // al salir: suelta teclas y corta la música
 ```
 
+**Una sola partida incrustada a la vez.** Las entidades del juego comparten un único
+estado (`src/game/world.js`), así que dos partidas vivas se pisarían el nivel, la cámara y
+los controles. `createEmbeddedGame` rechaza una segunda llamada mientras la primera siga
+viva o cargando; `destroy()` libera el lugar, y también lo libera una carga o un arranque
+que falle. Para mostrar el juego en más de una pantalla a la vez, dibuja el mismo canvas en
+todas.
+
 ## Tests
 
 ```sh
