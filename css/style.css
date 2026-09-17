@@ -1,0 +1,132 @@
+:root {
+  --control-size: 64px;
+  --control-bg: rgba(255, 255, 255, 0.18);
+  --control-border: rgba(255, 255, 255, 0.55);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+  overscroll-behavior: none;
+}
+
+#stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: #000;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#game {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+}
+
+button {
+  font: bold 1rem system-ui, sans-serif;
+  color: #fff;
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible {
+  outline: 2px solid #fcc400;
+  outline-offset: 2px;
+}
+
+#toolbar {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  display: flex;
+  gap: 6px;
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+
+#toolbar:hover,
+#toolbar:focus-within {
+  opacity: 1;
+}
+
+#toolbar button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+}
+
+#touch-controls {
+  position: absolute;
+  inset: auto 0 max(12px, env(safe-area-inset-bottom)) 0;
+  display: none;
+  justify-content: space-between;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+#touch-controls .pad {
+  display: flex;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+#touch-controls button {
+  width: var(--control-size);
+  height: var(--control-size);
+  font-size: 1.4rem;
+  backdrop-filter: blur(2px);
+}
+
+#touch-controls button:active {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+#touch-controls .round {
+  border-radius: 50%;
+}
+
+/* Phones and tablets get the on-screen buttons and an always visible toolbar. */
+@media (pointer: coarse) {
+  #touch-controls {
+    display: flex;
+  }
+
+  #toolbar {
+    opacity: 0.8;
+  }
+}
+
+#message,
+.notice {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  max-width: 90%;
+  margin: 0;
+  padding: 10px 16px;
+  font: 0.95rem system-ui, sans-serif;
+  color: #fff;
+  text-align: center;
+  background: rgba(176, 32, 32, 0.92);
+  border-radius: 8px;
+}

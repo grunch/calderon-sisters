@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <title>Calderón Bros</title>
+    <meta name="description" content="Calderón Bros: un juego de plataformas al estilo Super Mario Bros, con Maite y Mila.">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%AD%90%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="css/style.css">
+    <script type="module" src="src/main.js"></script>
+  </head>
+  <body>
+    <main id="stage">
+      <canvas id="game" width="256" height="240" aria-label="Calderón Bros"></canvas>
+
+      <nav id="toolbar" aria-label="Opciones">
+        <button id="btn-mute" type="button" title="Sonido (M)" aria-label="Activar o silenciar el sonido">&#9835;</button>
+        <button id="btn-pause" type="button" title="Pausa (P)" aria-label="Pausa">&#10074;&#10074;</button>
+        <button id="btn-fullscreen" type="button" title="Pantalla completa (F)" aria-label="Pantalla completa">&#x26F6;</button>
+      </nav>
+
+      <div id="touch-controls" aria-hidden="true">
+        <div class="pad">
+          <button type="button" data-action="LEFT">&#9664;</button>
+          <button type="button" data-action="DOWN">&#9660;</button>
+          <button type="button" data-action="RIGHT">&#9654;</button>
+        </div>
+        <div class="pad">
+          <button type="button" class="round" data-action="RUN">B</button>
+          <button type="button" class="round" data-action="JUMP">A</button>
+        </div>
+      </div>
+
+      <p id="message" role="status" hidden></p>
+      <noscript><p class="notice">Este juego necesita JavaScript.</p></noscript>
+    </main>
+  </body>
+</html>

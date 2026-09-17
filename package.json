@@ -1,0 +1,11 @@
+{
+  "name": "calderon-bros",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Calderon Bros: a Super Mario Bros style platformer starring Maite and Mila (level 1-1).",
+  "scripts": {
+    "test": "node --test",
+    "start": "python3 -m http.server 8000"
+  }
+}
