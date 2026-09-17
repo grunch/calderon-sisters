@@ -1,4 +1,4 @@
-# Calderón Bros
+# Calderón Sisters
 
 Un juego de plataformas al estilo Super Mario Bros con **Maite** y **Mila** como
 personajes jugables. Incluye el mundo 1-1 completo con su sala subterránea de monedas.
@@ -12,7 +12,7 @@ Los módulos ES no funcionan abriendo el archivo directamente (`file://`); hace 
 servidor web cualquiera sirviendo este directorio:
 
 ```sh
-cd calderon-bros
+cd calderon-sisters
 python3 -m http.server 8000     # o: npm start
 # y abre http://localhost:8000/
 ```

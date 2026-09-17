@@ -16,6 +16,14 @@ export const TIME_TICK_SECONDS = 0.4;
 export const ENEMY_WAKE_MARGIN = 80;
 
 export const STORAGE_KEYS = {
+  character: 'calderon-sisters.character',
+  highScore: 'calderon-sisters.highScore',
+  muted: 'calderon-sisters.muted'
+};
+
+// The game used to be called Calderón Bros. What players saved back then is
+// still read from these keys, so nobody loses her high score to the rename.
+export const LEGACY_STORAGE_KEYS = {
   character: 'calderon-bros.character',
   highScore: 'calderon-bros.highScore',
   muted: 'calderon-bros.muted'
