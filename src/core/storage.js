@@ -1,3 +1,5 @@
+import { STORAGE_KEYS } from '../config.js';
+
 // localStorage can be missing or blocked (private windows), and the game must
 // work without it, so every access is guarded and failures are only reported.
 export function loadSetting(key, fallback) {
@@ -17,3 +19,12 @@ export function saveSetting(key, value) {
     console.warn(`No se pudo guardar "${key}": ${error.message}`);
   }
 }
+
+/**
+ * Where the game keeps what it remembers, by setting name ('character',
+ * 'highScore', 'muted'). A host that embeds the game passes its own instead.
+ */
+export const localSettings = Object.freeze({
+  load: (name, fallback) => loadSetting(STORAGE_KEYS[name], fallback),
+  save: (name, value) => saveSetting(STORAGE_KEYS[name], value)
+});

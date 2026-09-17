@@ -47,6 +47,7 @@ Netlify, etc.). No tiene dependencias ni paso de compilación. Las carpetas `art
 index.html, css/       la página
 src/
   main.js              arranque, bucle principal, pantalla completa
+  embed.js             arranque alternativo: el juego corriendo dentro de otro programa
   config.js            constantes compartidas
   assets-manifest.js   imágenes y sonidos a cargar
   core/                motor: timestep, viewport, entrada, audio, sprites, colisiones
@@ -67,6 +68,29 @@ test/                  tests de la lógica pura
 3. Añade una entrada en `src/game/characters.js`.
 
 La casa del final del nivel sale de `art/castle.png` con `python3 tools/build_castle.py`.
+
+### Incrustar el juego en otro programa
+
+`src/embed.js` arranca el mismo juego, con las mismas reglas, sobre un canvas ajeno. El
+anfitrión es dueño del canvas, del bucle de cuadros, de los controles, del sonido y de lo
+que se guarda; el juego no escucha el teclado ni toca `localStorage`.
+
+```js
+import { createEmbeddedGame } from './src/embed.js';
+
+const tele = await createEmbeddedGame({
+  ctx,                         // contexto 2D; 256 × 240 da escala 1
+  assetRoot: 'assets/tele/',   // carpeta con sprites/ y sounds/
+  input,                       // isDown, consumePress, clearPresses, reset
+  audio,                       // muted, setMuted, play, playMusic, stopMusic, pauseAll, resumeAll
+  settings,                    // load(nombre, porDefecto), save(nombre, valor)
+  onLevelClear: () => {}       // una vez por nivel completado
+});
+
+tele.advance(dt);              // en cada cuadro: pasos fijos de 1/60 s
+tele.render();
+tele.destroy();                // al salir: suelta teclas y corta la música
+```
 
 ## Tests
 
