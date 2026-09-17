@@ -12,6 +12,10 @@ export { SOUNDS, MUSIC };
 
 const REQUIRED = ['ctx', 'assetRoot', 'input', 'audio', 'settings'];
 
+// The entities read one shared `world` (game/world.js), so two games alive at
+// once would play each other's level. Only one may exist until it is destroyed.
+let slotTaken = false;
+
 /**
  * @param {object} host
  * @param {CanvasRenderingContext2D} host.ctx  where to draw; its canvas size sets the scale
@@ -22,20 +26,32 @@ const REQUIRED = ['ctx', 'assetRoot', 'input', 'audio', 'settings'];
  * @param {Function} [host.onLevelClear]       called once each time a level is completed
  * @param {boolean} [host.isTouch]             which hint the select screen shows; the touch one names no keys
  * @param {Function} [host.loadAssets]         replaces the image loader (tests)
+ * @returns {Promise<object>} the handle: advance, render, destroy, state, viewport, game
+ * @throws if the host contract is incomplete, or another embedded game is still alive
  */
 export async function createEmbeddedGame(host) {
   const missing = REQUIRED.filter((name) => host?.[name] === undefined || host[name] === null);
   if (missing.length > 0) {
     throw new Error(`createEmbeddedGame: falta ${missing.join(', ')}`);
   }
+  if (slotTaken) {
+    throw new Error('createEmbeddedGame: solo puede haber una sola partida incrustada a la vez; llama destroy() en la anterior');
+  }
   const { ctx, assetRoot, input, audio, settings, onLevelClear, isTouch = true, loadAssets = loadImages } = host;
 
-  await loadAssets(IMAGES, assetRoot);
-
-  const game = new Game({ input, audio, settings, onLevelClear, isTouch });
-  const { scale, viewWidth } = computeViewport(ctx.canvas.width, ctx.canvas.height);
-  const viewport = Object.freeze({ scale, viewWidth });
-  game.setViewport(viewport);
+  slotTaken = true; // taken before the first await, so a concurrent call is refused too
+  let game;
+  let viewport;
+  try {
+    await loadAssets(IMAGES, assetRoot);
+    game = new Game({ input, audio, settings, onLevelClear, isTouch });
+    const { scale, viewWidth } = computeViewport(ctx.canvas.width, ctx.canvas.height);
+    viewport = Object.freeze({ scale, viewWidth });
+    game.setViewport(viewport);
+  } catch (error) {
+    slotTaken = false; // a game that never started must not block the next one
+    throw error;
+  }
 
   let accumulator = 0;
   let destroyed = false;
@@ -44,6 +60,7 @@ export async function createEmbeddedGame(host) {
     game,
     viewport,
 
+    /** 'select', 'playing', 'paused', 'gameover' or 'clear'. */
     get state() {
       return game.state;
     },
@@ -57,16 +74,21 @@ export async function createEmbeddedGame(host) {
       return result.steps;
     },
 
+    /** Draws the current frame on the host's canvas. */
     render() {
       if (!destroyed) game.render(ctx);
     },
 
-    /** The player walked away from the TV: the run in progress is simply dropped. */
+    /**
+     * The host is done (the player walked away): the run in progress is simply
+     * dropped and another embedded game may be created. Safe to call twice.
+     */
     destroy() {
       if (destroyed) return;
       destroyed = true;
       input.reset();
       audio.stopMusic();
+      slotTaken = false;
     }
   };
 }

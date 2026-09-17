@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, { afterEach } from 'node:test';
 import assert from 'node:assert';
 import { Game } from '../src/game/game.js';
 import { createEmbeddedGame } from '../src/embed.js';
@@ -62,6 +62,17 @@ function fakeContext(width = MIN_VIEW_WIDTH, height = VIEW_HEIGHT) {
     }
   });
 }
+
+// Only one embedded game may be alive at a time, so every test gives its own back.
+const alive = [];
+async function hosted(host) {
+  const embedded = await createEmbeddedGame(host);
+  alive.push(embedded);
+  return embedded;
+}
+afterEach(() => {
+  while (alive.length > 0) alive.pop().destroy();
+});
 
 function run(game, seconds) {
   for (let i = 0; i < seconds * SECOND; i++) game.update(STEP);
@@ -177,7 +188,7 @@ test('images load from the asset root they are given', async () => {
 
 test('the embedded game loads its images from the host root before starting', async () => {
   const loads = [];
-  const embedded = await createEmbeddedGame({
+  const embedded = await hosted({
     ctx: fakeContext(), assetRoot: 'assets/tele/', input: fakeInput(), audio: fakeAudio(),
     settings: memorySettings(),
     loadAssets: async (manifest, root) => { loads.push([manifest, root]); }
@@ -194,7 +205,7 @@ test('the host drives the loop: advance runs fixed steps and render draws on its
   globalThis.Image = class {
     set src(value) { queueMicrotask(() => this.onload()); }
   };
-  const embedded = await createEmbeddedGame({
+  const embedded = await hosted({
     ctx, assetRoot: './', input, audio: fakeAudio(), settings: memorySettings()
   }).finally(() => { delete globalThis.Image; });
 
@@ -209,7 +220,7 @@ test('the host drives the loop: advance runs fixed steps and render draws on its
 });
 
 test('the embedded view is the classic 256 wide screen at the canvas scale', async () => {
-  const embedded = await createEmbeddedGame({
+  const embedded = await hosted({
     ctx: fakeContext(MIN_VIEW_WIDTH * 2, VIEW_HEIGHT * 2), assetRoot: './', input: fakeInput(),
     audio: fakeAudio(), settings: memorySettings(), loadAssets: async () => {}
   });
@@ -220,7 +231,7 @@ test('the embedded view is the classic 256 wide screen at the canvas scale', asy
 test('the level-clear callback reaches the host', async () => {
   const input = fakeInput();
   let cleared = 0;
-  const embedded = await createEmbeddedGame({
+  const embedded = await hosted({
     ctx: fakeContext(), assetRoot: './', input, audio: fakeAudio(), settings: memorySettings(),
     loadAssets: async () => {}, onLevelClear: () => { cleared += 1; }
   });
@@ -238,7 +249,7 @@ test('destroy stops the music, drops held keys and freezes the game', async () =
   const input = fakeInput();
   const audio = fakeAudio();
   const ctx = fakeContext();
-  const embedded = await createEmbeddedGame({
+  const embedded = await hosted({
     ctx, assetRoot: './', input, audio, settings: memorySettings(), loadAssets: async () => {}
   });
   const resetsBefore = input.resets;
@@ -258,4 +269,82 @@ test('a missing piece of the host contract fails loudly', async () => {
     createEmbeddedGame({ assetRoot: './', input: fakeInput(), audio: fakeAudio(), settings: memorySettings() }),
     /ctx/
   );
+});
+
+function host(overrides = {}) {
+  return {
+    ctx: fakeContext(), assetRoot: './', input: fakeInput(), audio: fakeAudio(),
+    settings: memorySettings(), loadAssets: async () => {}, ...overrides
+  };
+}
+
+test('a second embedded game is refused while the first one is alive', async () => {
+  const first = await hosted(host());
+
+  await assert.rejects(createEmbeddedGame(host()), /una sola/);
+
+  first.advance(STEP);
+  assert.strictEqual(first.state, 'select', 'the first one is not disturbed');
+});
+
+test('a second game is refused even while the first is still loading', async () => {
+  let finishLoading;
+  const loading = new Promise((resolve) => { finishLoading = resolve; });
+  const first = hosted(host({ loadAssets: () => loading }));
+
+  await assert.rejects(createEmbeddedGame(host()), /una sola/);
+
+  finishLoading();
+  assert.strictEqual((await first).state, 'select');
+});
+
+test('destroying the embedded game makes room for the next one', async () => {
+  const first = await hosted(host());
+  first.destroy();
+
+  const second = await hosted(host());
+
+  assert.strictEqual(second.state, 'select');
+});
+
+test('a game that failed to load does not keep the slot taken', async () => {
+  await assert.rejects(
+    createEmbeddedGame(host({ loadAssets: async () => { throw new Error('sin red'); } })),
+    /sin red/
+  );
+
+  const next = await hosted(host());
+
+  assert.strictEqual(next.state, 'select');
+});
+
+test('a game that failed to start does not keep the slot taken', async () => {
+  const brokenSettings = { load() { throw new Error('guardado roto'); }, save() {} };
+  await assert.rejects(createEmbeddedGame(host({ settings: brokenSettings })), /guardado roto/);
+
+  const next = await hosted(host());
+
+  assert.strictEqual(next.state, 'select');
+});
+
+test('a rejected host contract does not take the slot either', async () => {
+  await assert.rejects(createEmbeddedGame(host({ ctx: undefined })), /ctx/);
+
+  const next = await hosted(host());
+
+  assert.strictEqual(next.state, 'select');
+});
+
+test('a destroyed game leaves the shared world alone for whoever comes next', async () => {
+  const first = await hosted(host());
+  first.destroy();
+  const audio = fakeAudio();
+  const second = await hosted(host({ audio }));
+  const callsBefore = audio.calls.length;
+
+  first.destroy();
+  first.advance(1);
+
+  assert.strictEqual(audio.calls.length, callsBefore, 'the old handle cannot reach the new host');
+  assert.strictEqual(second.state, 'select');
 });

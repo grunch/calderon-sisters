@@ -18,7 +18,7 @@ const FOLLOW_RATIO = 80 / MIN_VIEW_WIDTH;
 const EXIT_FOLLOW_EXTRA = 16;
 const SCENERY_MARGIN_TILES = 3; // clouds and bushes are up to 3 tiles wide
 
-// A touch screen gets the hint that talks about the on-screen buttons.
+/** True on a touch screen, which gets the hint about the on-screen buttons. False without a browser. */
 function detectTouch() {
   return typeof window !== 'undefined' && Boolean(window.matchMedia?.('(pointer: coarse)').matches);
 }
