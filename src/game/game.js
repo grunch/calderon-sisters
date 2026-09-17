@@ -6,8 +6,8 @@ import { createSession, addScore, addCoin, loseLife, tickClock } from './session
 import { initialSelection, stepSelection } from '../ui/select-logic.js';
 import { SelectScreen, drawPauseScreen, drawGameOverScreen, drawClearScreen } from '../ui/screens.js';
 import { drawHud } from '../ui/hud.js';
-import { loadSetting, saveSetting } from '../core/storage.js';
-import { TILE, ROWS, VIEW_HEIGHT, MIN_VIEW_WIDTH, STORAGE_KEYS } from '../config.js';
+import { localSettings } from '../core/storage.js';
+import { TILE, ROWS, VIEW_HEIGHT, MIN_VIEW_WIDTH } from '../config.js';
 
 const STATE = { SELECT: 'select', PLAYING: 'playing', PAUSED: 'paused', GAME_OVER: 'gameover', CLEAR: 'clear' };
 const TIME_BONUS_PER_TICK = 50;
@@ -18,26 +18,37 @@ const FOLLOW_RATIO = 80 / MIN_VIEW_WIDTH;
 const EXIT_FOLLOW_EXTRA = 16;
 const SCENERY_MARGIN_TILES = 3; // clouds and bushes are up to 3 tiles wide
 
+/** True on a touch screen, which gets the hint about the on-screen buttons. False without a browser. */
+function detectTouch() {
+  return typeof window !== 'undefined' && Boolean(window.matchMedia?.('(pointer: coarse)').matches);
+}
+
 export class Game {
-  constructor({ input, audio }) {
+  /**
+   * `settings`, `onLevelClear` and `isTouch` are for a host that embeds the
+   * game (see embed.js); on its own page the defaults are what it always did.
+   */
+  constructor({ input, audio, settings = localSettings, onLevelClear = () => {}, isTouch = detectTouch() }) {
     this.input = input;
     this.audio = audio;
+    this.settings = settings;
+    this.onLevelClear = onLevelClear;
     this.state = STATE.SELECT;
     this.session = null;
     this.player = null;
     this.timers = [];
     this.scale = 1;
-    this.highScore = loadSetting(STORAGE_KEYS.highScore, 0);
+    this.highScore = settings.load('highScore', 0);
     this.selectScreen = new SelectScreen();
-    this.isTouch = window.matchMedia('(pointer: coarse)').matches;
+    this.isTouch = isTouch;
 
-    const savedIndex = CHARACTERS.indexOf(characterById(loadSetting(STORAGE_KEYS.character, CHARACTERS[0].id)));
+    const savedIndex = CHARACTERS.indexOf(characterById(settings.load('character', CHARACTERS[0].id)));
     this.selection = initialSelection(savedIndex);
 
     world.input = input;
     world.audio = audio;
     world.game = this;
-    audio.setMuted(loadSetting(STORAGE_KEYS.muted, false));
+    audio.setMuted(settings.load('muted', false));
     this.showSelect();
   }
 
@@ -76,7 +87,10 @@ export class Game {
   levelCleared() {
     this.addScore(this.session.time * TIME_BONUS_PER_TICK);
     // A moment to see her walk into the castle before the results cover it.
-    this.after(CLEAR_SCREEN_DELAY, () => this.finish(STATE.CLEAR));
+    this.after(CLEAR_SCREEN_DELAY, () => {
+      this.finish(STATE.CLEAR);
+      this.onLevelClear();
+    });
   }
 
   loadLevel(name, { silent = false } = {}) {
@@ -118,7 +132,7 @@ export class Game {
     this.input.clearPresses(); // jumps made while playing must not dismiss the screen
     if (this.session.score > this.highScore) {
       this.highScore = this.session.score;
-      saveSetting(STORAGE_KEYS.highScore, this.highScore);
+      this.settings.save('highScore', this.highScore);
     }
   }
 
@@ -137,7 +151,7 @@ export class Game {
 
   toggleMute() {
     this.audio.setMuted(!this.audio.muted);
-    saveSetting(STORAGE_KEYS.muted, this.audio.muted);
+    this.settings.save('muted', this.audio.muted);
   }
 
   // ---- view -----------------------------------------------------------------------
@@ -217,7 +231,7 @@ export class Game {
     world.level.updateAnimatedTiles(dt);
 
     if (this.selection.confirmed) {
-      saveSetting(STORAGE_KEYS.character, this.character.id);
+      this.settings.save('character', this.character.id);
       this.session = createSession(this.character.id);
       this.state = STATE.PLAYING;
       this.input.reset(); // the key that confirmed shouldn't also make her jump

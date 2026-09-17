@@ -47,6 +47,7 @@ Netlify, etc.). No tiene dependencias ni paso de compilación. Las carpetas `art
 index.html, css/       la página
 src/
   main.js              arranque, bucle principal, pantalla completa
+  embed.js             arranque alternativo: el juego corriendo dentro de otro programa
   config.js            constantes compartidas
   assets-manifest.js   imágenes y sonidos a cargar
   core/                motor: timestep, viewport, entrada, audio, sprites, colisiones
@@ -67,6 +68,36 @@ test/                  tests de la lógica pura
 3. Añade una entrada en `src/game/characters.js`.
 
 La casa del final del nivel sale de `art/castle.png` con `python3 tools/build_castle.py`.
+
+### Incrustar el juego en otro programa
+
+`src/embed.js` arranca el mismo juego, con las mismas reglas, sobre un canvas ajeno. El
+anfitrión es dueño del canvas, del bucle de cuadros, de los controles, del sonido y de lo
+que se guarda; el juego no escucha el teclado ni toca `localStorage`.
+
+```js
+import { createEmbeddedGame } from './src/embed.js';
+
+const tele = await createEmbeddedGame({
+  ctx,                         // contexto 2D; 256 × 240 da escala 1
+  assetRoot: 'assets/tele/',   // carpeta con sprites/ y sounds/
+  input,                       // isDown, consumePress, clearPresses, reset
+  audio,                       // muted, setMuted, play, playMusic, stopMusic, pauseAll, resumeAll
+  settings,                    // load(nombre, porDefecto), save(nombre, valor)
+  onLevelClear: () => {}       // una vez por nivel completado
+});
+
+tele.advance(dt);              // en cada cuadro: pasos fijos de 1/60 s
+tele.render();
+tele.destroy();                // al salir: suelta teclas y corta la música
+```
+
+**Una sola partida incrustada a la vez.** Las entidades del juego comparten un único
+estado (`src/game/world.js`), así que dos partidas vivas se pisarían el nivel, la cámara y
+los controles. `createEmbeddedGame` rechaza una segunda llamada mientras la primera siga
+viva o cargando; `destroy()` libera el lugar, y también lo libera una carga o un arranque
+que falle. Para mostrar el juego en más de una pantalla a la vez, dibuja el mismo canvas en
+todas.
 
 ## Tests
 
