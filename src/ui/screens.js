@@ -32,7 +32,7 @@ export class SelectScreen {
   render(ctx, viewWidth, selectedIndex, highScore, isTouch) {
     const center = viewWidth / 2;
     dim(ctx, viewWidth, 0.4);
-    drawText(ctx, 'CALDER\u00d3N BROS', center, 50, { size: 16, color: GOLD });
+    drawText(ctx, 'CALDER\u00d3N SISTERS', center, 50, { size: 16, color: GOLD });
     drawText(ctx, 'ELIGE TU PERSONAJE', center, 70);
 
     const totalWidth = CHARACTERS.length * CARD.width + (CHARACTERS.length - 1) * CARD.gap;

@@ -162,7 +162,7 @@ test('without injected settings the game still uses localStorage, as before', ()
     const game = new Game({ input, audio: fakeAudio() });
     startPlaying(game, input);
 
-    assert.strictEqual(stored.get('calderon-bros.character'), '"maite"');
+    assert.strictEqual(stored.get('calderon-sisters.character'), '"maite"');
     assert.strictEqual(game.isTouch, false);
   } finally {
     delete globalThis.window;
